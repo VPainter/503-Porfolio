@@ -1,0 +1,27 @@
+```{r}
+accounts <- read.csv("data/accounts_analytical.csv")
+transactions <- read.csv("data/transactions.csv")
+
+df <- transactions[transactions$type == 'credit',]
+
+accounts$credit_transactions <- rep(FALSE, nrow(accounts))
+
+j = 1
+for(i in 1:nrow(df)){
+  while(df$account_id[i] > accounts$account_id[j]){j = j+1}
+  if(df$account_id[i] == accounts$account_id[j]){
+    accounts$credit_transactions[j] = TRUE
+  }
+}
+
+accounts$ccholds <- rep(FALSE, nrow(accounts))
+
+for(i in 1:nrow(accounts)){
+  if(!is.na(accounts$credit_cards[i])){accounts$ccholds[i] = TRUE}
+}
+
+
+table(accounts$ccholds, accounts$credit_transactions)
+```
+
+We can see that there are a lot of accounts has no cards but still performs credit transactions. There are also 44 accounts with credit cards but having no credit transactions. 

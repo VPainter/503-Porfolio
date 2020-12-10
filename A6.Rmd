@@ -1,0 +1,191 @@
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(python.reticulate = FALSE)
+```
+
+## Data Extraction
+```{r}
+library(pacman)
+p_load(char = c("arrow", "tidyverse","sf","rnaturalearth","osmar","lubridate"))
+options(warn=-1)
+library(readxl)
+
+countypres <- read.csv("data/countypres_2000-2016.csv")
+unemployment <- read_excel("data/Unemployment.xls", sheet = 1, skip = 7)
+colnames(unemployment)[1] <- "FIPS"
+unemployment <- transform(unemployment, FIPS = as.integer(FIPS))
+
+
+df2008 <- unemployment %>% select(FIPS, Stabr, Unemployment_rate_2008)
+TX2008 <- df2008[which(df2008$Stabr=='TX'),]
+TX2008 <- TX2008[-1,]
+CA2008 <- df2008[which(df2008$Stabr=='CA'),]
+CA2008 <- CA2008[-1,]
+PA2008 <- df2008[which(df2008$Stabr=='PA'),]
+PA2008 <- PA2008[-1,]
+df2012 <- unemployment %>% select(FIPS, Stabr, Unemployment_rate_2012)
+TX2012 <- df2012[which(df2012$Stabr=='TX'),]
+TX2012 <- TX2012[-1,]
+CA2012 <- df2012[which(df2012$Stabr=='CA'),]
+CA2012 <- CA2012[-1,]
+PA2012 <- df2012[which(df2012$Stabr=='PA'),]
+PA2012 <- PA2012[-1,]
+df2016 <- unemployment %>% select(FIPS, Stabr, Unemployment_rate_2016)
+TX2016 <- df2016[which(df2016$Stabr=='TX'),]
+TX2016 <- TX2016[-1,]
+CA2016 <- df2016[which(df2016$Stabr=='CA'),]
+CA2016 <- CA2016[-1,]
+PA2016 <- df2016[which(df2016$Stabr=='PA'),]
+PA2016 <- PA2016[-1,]
+
+countypres <- countypres[which(countypres$state_po %in% c("TX", "CA", "PA") & countypres$year %in% c(2008, 2012, 2016) & countypres$party %in% c("democrat", "republican")),]
+
+countypres$vote_per <- with(countypres, candidatevotes/totalvotes)
+
+countypres <- countypres %>% select(FIPS, state_po, county, year, party, vote_per)
+
+df <- countypres[which(countypres$state_po == "TX" & countypres$year == 2008 & countypres$party == "democrat"),]
+df <- df %>% select(FIPS, county, vote_per, year)
+colnames(df)[3] <- "democrat_vote_per"
+TX2008 <- merge(TX2008, df)
+df <- countypres[which(countypres$state_po == "CA" & countypres$year == 2008 & countypres$party == "democrat"),]
+df <- df %>% select(FIPS, county, vote_per, year)
+colnames(df)[3] <- "democrat_vote_per"
+CA2008 <- merge(CA2008, df)
+df <- countypres[which(countypres$state_po == "PA" & countypres$year == 2008 & countypres$party == "democrat"),]
+df <- df %>% select(FIPS, county, vote_per, year)
+colnames(df)[3] <- "democrat_vote_per"
+PA2008 <- merge(PA2008, df)
+df <- countypres[which(countypres$state_po == "TX" & countypres$year == 2008 & countypres$party == "republican"),]
+df <- df %>% select(FIPS, county, vote_per, year)
+colnames(df)[3] <- "republican_vote_per"
+TX2008 <- merge(TX2008, df)
+df <- countypres[which(countypres$state_po == "CA" & countypres$year == 2008 & countypres$party == "republican"),]
+df <- df %>% select(FIPS, county, vote_per, year)
+colnames(df)[3] <- "republican_vote_per"
+CA2008 <- merge(CA2008, df)
+df <- countypres[which(countypres$state_po == "PA" & countypres$year == 2008 & countypres$party == "republican"),]
+df <- df %>% select(FIPS, county, vote_per, year)
+colnames(df)[3] <- "republican_vote_per"
+PA2008 <- merge(PA2008, df)
+df <- countypres[which(countypres$state_po == "TX" & countypres$year == 2012 & countypres$party == "democrat"),]
+df <- df %>% select(FIPS, county, vote_per, year)
+colnames(df)[3] <- "democrat_vote_per"
+TX2012 <- merge(TX2012, df)
+df <- countypres[which(countypres$state_po == "CA" & countypres$year == 2012 & countypres$party == "democrat"),]
+df <- df %>% select(FIPS, county, vote_per, year)
+colnames(df)[3] <- "democrat_vote_per"
+CA2012 <- merge(CA2012, df)
+df <- countypres[which(countypres$state_po == "PA" & countypres$year == 2012 & countypres$party == "democrat"),]
+df <- df %>% select(FIPS, county, vote_per, year)
+colnames(df)[3] <- "democrat_vote_per"
+PA2012 <- merge(PA2012, df)
+df <- countypres[which(countypres$state_po == "TX" & countypres$year == 2012 & countypres$party == "republican"),]
+df <- df %>% select(FIPS, county, vote_per, year)
+colnames(df)[3] <- "republican_vote_per"
+TX2012 <- merge(TX2012, df)
+df <- countypres[which(countypres$state_po == "CA" & countypres$year == 2012 & countypres$party == "republican"),]
+df <- df %>% select(FIPS, county, vote_per, year)
+colnames(df)[3] <- "republican_vote_per"
+CA2012 <- merge(CA2012, df)
+df <- countypres[which(countypres$state_po == "PA" & countypres$year == 2012 & countypres$party == "republican"),]
+df <- df %>% select(FIPS, county, vote_per, year)
+colnames(df)[3] <- "republican_vote_per"
+PA2012 <- merge(PA2012, df)
+df <- countypres[which(countypres$state_po == "TX" & countypres$year == 2016 & countypres$party == "democrat"),]
+df <- df %>% select(FIPS, county, vote_per, year)
+colnames(df)[3] <- "democrat_vote_per"
+TX2016 <- merge(TX2016, df)
+df <- countypres[which(countypres$state_po == "CA" & countypres$year == 2016 & countypres$party == "democrat"),]
+df <- df %>% select(FIPS, county, vote_per, year)
+colnames(df)[3] <- "democrat_vote_per"
+CA2016 <- merge(CA2016, df)
+df <- countypres[which(countypres$state_po == "PA" & countypres$year == 2016 & countypres$party == "democrat"),]
+df <- df %>% select(FIPS, county, vote_per, year)
+colnames(df)[3] <- "democrat_vote_per"
+PA2016 <- merge(PA2016, df)
+df <- countypres[which(countypres$state_po == "TX" & countypres$year == 2016 & countypres$party == "republican"),]
+df <- df %>% select(FIPS, county, vote_per, year)
+colnames(df)[3] <- "republican_vote_per"
+TX2016 <- merge(TX2016, df)
+df <- countypres[which(countypres$state_po == "CA" & countypres$year == 2016 & countypres$party == "republican"),]
+df <- df %>% select(FIPS, county, vote_per, year)
+colnames(df)[3] <- "republican_vote_per"
+CA2016 <- merge(CA2016, df)
+df <- countypres[which(countypres$state_po == "PA" & countypres$year == 2016 & countypres$party == "republican"),]
+df <- df %>% select(FIPS, county, vote_per, year)
+colnames(df)[3] <- "republican_vote_per"
+PA2016 <- merge(PA2016, df)
+
+colnames(TX2008)[5] = "unemployment_rate"
+colnames(TX2012)[5] = "unemployment_rate"
+colnames(TX2016)[5] = "unemployment_rate"
+colnames(CA2008)[5] = "unemployment_rate"
+colnames(CA2012)[5] = "unemployment_rate"
+colnames(CA2016)[5] = "unemployment_rate"
+colnames(PA2008)[5] = "unemployment_rate"
+colnames(PA2012)[5] = "unemployment_rate"
+colnames(PA2016)[5] = "unemployment_rate"
+```
+
+## Election vote plot
+
+```{r}
+us_map <- st_read("tl_2019_us_county-1/tl_2019_us_county.shp")
+us_map <- transform(us_map, GEOID = as.integer(GEOID))
+```
+
+```{r}
+A <- left_join(TX2008, us_map %>% select(GEOID, geometry), by=c('FIPS'='GEOID'))
+B <- left_join(TX2012, us_map %>% select(GEOID, geometry), by=c('FIPS'='GEOID'))
+C <- left_join(TX2016, us_map %>% select(GEOID, geometry), by=c('FIPS'='GEOID'))
+df1 <- rbind(A, B, C)
+ggplot(df1)+
+  geom_sf(aes(fill = log(democrat_vote_per/republican_vote_per), geometry = geometry)) +
+  scale_fill_gradient("Democrat to Republican", low = "red", high = "blue") +
+  labs(title='Vote in TX') +
+  facet_wrap(~year, ncol = 3)
+```
+
+```{r}
+A <- left_join(CA2008, us_map %>% select(GEOID, geometry), by=c('FIPS'='GEOID'))
+B <- left_join(CA2012, us_map %>% select(GEOID, geometry), by=c('FIPS'='GEOID'))
+C <- left_join(CA2016, us_map %>% select(GEOID, geometry), by=c('FIPS'='GEOID'))
+df2 <- rbind(A, B, C)
+ggplot(df2)+
+  geom_sf(aes(fill = log(democrat_vote_per/republican_vote_per), geometry = geometry)) +
+  scale_fill_gradient("Democrat to Republican", low = "red", high = "blue") +
+  labs(title='Vote in CA') +
+  facet_wrap(~year, ncol = 3)
+  
+A <- left_join(PA2008, us_map %>% select(GEOID, geometry), by=c('FIPS'='GEOID'))
+B <- left_join(PA2012, us_map %>% select(GEOID, geometry), by=c('FIPS'='GEOID'))
+C <- left_join(PA2016, us_map %>% select(GEOID, geometry), by=c('FIPS'='GEOID'))
+df3 <- rbind(A, B, C)
+ggplot(df3)+
+  geom_sf(aes(fill = log(democrat_vote_per/republican_vote_per), geometry = geometry)) +
+  scale_fill_gradient("Democrat to Republican", low = "red", high = "blue") +
+  labs(title='Vote in PA') +
+  facet_wrap(~year, ncol = 3)
+```
+
+## Unemployment rate plot
+
+```{r}
+ggplot(df1)+
+  geom_sf(aes(fill = unemployment_rate, geometry = geometry)) +
+  scale_fill_vigri("Democrat to Republican", low = "blue", high = "yellow") +
+  labs(title='Unemployment rate in TX') +
+  facet_wrap(~year, ncol = 3)
+  
+ggplot(df2)+
+  geom_sf(aes(fill = unemployment_rate, geometry = geometry)) +
+  scale_fill_gradient("Democrat to Republican", low = "blue", high = "yellow") +
+  labs(title='Unemployment rate in CA') +
+  facet_wrap(~year, ncol = 3)
+  
+ggplot(df3)+
+  geom_sf(aes(fill = unemployment_rate, geometry = geometry)) +
+  scale_fill_gradient("Democrat to Republican", low = "blue", high = "yellow") +
+  labs(title='Unemployment rate in PA') +
+  facet_wrap(~year, ncol = 3)
+```

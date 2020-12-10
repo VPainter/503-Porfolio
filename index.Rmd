@@ -1,0 +1,227 @@
+---
+title: "503"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    vertical_layout: fill
+---
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+```
+
+Column
+-----------------------------------------------------------------------
+
+### DOTA 2 Server Location
+
+```{r}
+library(ggplot2)
+library(dplyr)
+require(maps)
+require(viridis)
+theme_set(
+  theme_void()
+)
+
+world_map <- map_data("world")
+ggplot(world_map, aes(x = long, y = lat, group = group)) +
+  geom_polygon(fill="lightgray", colour = "white")
+
+df <- read.csv('data/cluster_regions.csv', stringsAsFactors=FALSE)
+df[1:7,2] <- 'USA'
+df[8:15,2] <- 'Austria'
+df[16:17,2] <- 'Japan'
+df[18:23,2] <- 'Singapore'
+df[24,2] <- 'Dubai'
+df[25:26,2] <- 'Australia'
+df[27:34,2] <- 'Sweden'
+df[35:37,2] <- 'Austria'
+df[38:40,2] <- 'Brazil'
+df[41:43,2] <- 'South Africa'
+df[44:49,2] <- 'China'
+df[50:51,2] <- 'Chile'
+df[52,2] <- 'Peru'
+df[53,2] <- 'India'
+region <- data.frame(table(df$region), stringsAsFactors=FALSE)
+colnames(region) <- c('region', 'ServerNum')
+
+server <- right_join(region, world_map, by = "region")
+
+ggplot(server, aes(long, lat, group = group))+
+  geom_polygon(aes(fill = ServerNum ), color = "white")+
+  scale_fill_viridis_c(option = "C")+
+  ggtitle("DOTA 2 Server Location", subtitle = paste0("(", length(unique(region$region)), " countries)"))
+```
+
+
+### Win Rate
+
+```{r}
+df <- read.csv('data/match.csv')
+
+
+w <- c(nrow(df[which(df$radiant_win=='True'),])/nrow(df), nrow(df[which(df$radiant_win=='False'),])/nrow(df))
+pie(w,labels=c(paste("Radiant win rate", toString(w[1]*100), '%', sep=" "), 
+               paste("Dire win rate", toString(w[2]*100), '%', sep=" ")),
+    col=c('green', 'red'), main="Win Rate")
+```
+
+Column
+-----------------------------------------------------------------------
+
+### Match duration
+
+```{r}
+theme_set(theme_bw())
+
+qplot(df$duration,
+      geom="histogram",
+      binwidth = 600,  
+      main = "Match duration", 
+      xlab = "Match Time in Seconds",  
+      fill=I("blue"), 
+      col=I("red"), 
+      alpha=I(.2))
+```
+
+
+### First Blood distribution (in seconds)
+
+```{r}
+ggplot(df, aes(x = '', y = first_blood_time, fill='red')) +
+  geom_boxplot()+
+  ggtitle("First Blood distribution (in seconds)")
+```
+
+Row {data-height=650}
+-----------------------------------------------------------------------
+
+### Teamfight Time Series
+
+```{r}
+df <- read.csv('data/teamfights.csv')
+
+ggplot(df, aes(x=end, y=deaths)) +
+  geom_line(col = 'red') + 
+  xlab("teamfight end time in seconds")+
+  ylab("deaths")+
+  ggtitle("Teamfight Time Series", subtitle = '(Intense teamfight tend to happend in early game)')
+```
+
+Row {data-height=350}
+-----------------------------------------------------------------------
+
+### Top Hero Combinations
+
+```{r}
+library(dplyr)
+library(tidyverse)
+library(tidygraph)
+library(ggraph)
+
+df <- read.csv('data/players.csv')
+df1 <- read.csv('data/hero_names.csv')
+
+hero <- data.frame(sort(table(df$hero_id), decreasing = T))
+colnames(hero) <- c('hero_id', 'picks')
+hero <- transform(hero, hero_id = as.numeric(as.character(hero_id)))
+df2 <- left_join(hero, df1, by = 'hero_id')
+
+df3 <- df[, c("hero_id", "player_slot")]
+source <- c()
+target <- c()
+for(i in c(1:100000)){
+  index = 5*(i-1)+1
+  for(j in c(21, 11, 74)){
+    if(j %in% df3[index:(index+4),1]){
+      source <- c(source, j, j, j, j)
+      for(k in c(index:(index+4))){
+        if(df3[k,1] != j){target <- c(target, df3[k,1])}
+      }
+    }
+  }
+}
+combination <- data.frame(source, target)
+combination$count <- rep(1,nrow(combination))
+df4 <- combination
+df4 <- data.frame(
+  df4 %>% group_by(source, target) %>% 
+  summarise(count = sum(count))
+)
+colnames(df4) <- c('hero1', 'hero2', 'freq')
+df5 <- df4[order(-df4$freq),]
+df5 <- df5[1:30,]
+df5$color <- rep('green', 30)
+df5$color[which(df5$hero1==11)] <- 'red'
+df5$color[which(df5$hero1==74)] <- 'blue'
+
+colnames(df5) <- c('hero_id', 'hero2', 'freq', 'color')
+df5 <- left_join(df5, df1, by = 'hero_id')
+df5 <- df5[, c("localized_name", "hero2", "freq", "color")]
+colnames(df5) <- c('hero1', 'hero_id', 'freq', 'color')
+df5 <- left_join(df5, df1, by = 'hero_id')
+df5 <- df5[, c("hero1", "localized_name", "freq", "color")]
+colnames(df5) <- c('hero1', 'hero2', 'freq', 'color')
+
+got_graph <- as_tbl_graph(df5)
+got_graph %>% 
+  ggraph(layout='linear', circular = T)+
+  geom_node_point(aes(shape = 'circle'), show.legend = F)+
+  geom_edge_arc(aes(color = color, alpha = 0.001, edge_width = freq))+
+  scale_edge_width_continuous(range = c(0.2,2))+
+  geom_node_label(aes(label = name), size = 2)+
+  ggtitle("Top Hero Combinations", subtitle = '(Windranger and Shadow Fiend are the most popular picks)')
+```
+
+### Chat Popular Words
+
+```{r}
+library(data.table)
+library(tm)
+library(wordcloud)
+library(plotrix)
+library(dendextend)
+
+data <- fread("data/chat.csv", select = c("match_id", "key"))
+
+df <- data[, 'key']
+df <- df[1:10000,]
+df <- sapply(df,iconv, from="latin1", to="ASCII",sub="")
+# Make a vector source
+dfsource <- VectorSource(df)
+
+# Make a volatile corpus
+df_corpus <- VCorpus(dfsource)
+
+# Clean the corpus
+clean_corpus <- function(corpus){
+  corpus <- tm_map(corpus, removePunctuation)
+  corpus <- tm_map(corpus, stripWhitespace)
+  corpus <- tm_map(corpus, removeNumbers)
+  corpus <- tm_map(corpus, content_transformer(tolower))
+  corpus <- tm_map(corpus, removeWords, stopwords("en"))
+  return(corpus)
+}
+
+df_clean_corp <- clean_corpus(df_corpus)
+
+# Convert TDM to matrix
+df_tdm <- TermDocumentMatrix(df_clean_corp)
+df_m <- as.matrix(df_tdm)
+
+# Sum rows and frequency data frame
+df_term_freq <- rowSums(df_m)
+
+df_word_freqs <- data.frame(
+  term = names(df_term_freq),
+  num = df_term_freq
+)
+
+layout(matrix(c(1, 2), nrow=2), heights=c(1, 4))
+par(mar=rep(0, 4))
+plot.new()
+text(x=0.5, y=0.5, "Chat Popular Words", col = "red")
+wordcloud(df_word_freqs$term, df_word_freqs$num,
+           max.words = 50, colors = "red")
+```

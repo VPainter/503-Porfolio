@@ -1,0 +1,17 @@
+```{r}
+accounts <- read.csv("data/accounts_analytical.csv")
+
+df <- accounts[complete.cases(accounts[ , 'loan_term']),]
+
+logit <- glm(loan_status ~ as.numeric(acct_creation_date)+loan_amount+loan_payment+loan_term, data = df, family = "binomial")
+summary(logit)
+```
+
+The regression seems that there is almost no relationship between open date and loan default. Let's see the plot below. Red points shows FALSE for the plot.
+
+```{r}
+df$co <- rep(3, nrow(df))
+df <- within(df, co[loan_default == TRUE] <- 2)
+
+plot(df$account_id, as.numeric(df$acct_creation_date), pch = 19, col=df$co)
+```

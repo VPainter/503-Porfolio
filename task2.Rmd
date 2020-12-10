@@ -1,0 +1,11 @@
+```{r}
+accounts <- read.csv("data/accounts_analytical.csv")
+
+df <- accounts[complete.cases(accounts[ , 'loan_term']),]
+
+hist(df$loan_amount)
+
+hist(df$loan_payment)
+
+hist(df$loan_term)
+```

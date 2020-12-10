@@ -1,0 +1,25 @@
+```{r}
+accounts <- read.csv("data/accounts_analytical.csv")
+transactions <- read.csv("data/transactions.csv")
+
+Mode <- function(x) {
+  ux <- unique(x)
+  ux[which.max(tabulate(match(x, ux)))]
+}
+
+df <- transactions[transactions$account_id == Mode(transactions$account_id),]
+
+library(ggplot2)
+library(dplyr)
+library(plotly)
+library(hrbrthemes)
+
+# Usual area chart
+p <- df %>%
+  ggplot( aes(x=as.Date(date), y=amount)) +
+  geom_area(fill="#69b3a2", alpha=0.5) +
+  geom_line(color="#69b3a2") +
+  ylab("bitcoin price ($)")
+
+p
+```

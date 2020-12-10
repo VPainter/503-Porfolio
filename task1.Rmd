@@ -1,0 +1,53 @@
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(python.reticulate = FALSE)
+```
+We plot the points for each account. Blue color represents no credit card on the account and red color represents exists of credit cards. X marker represents loan on the account. 
+
+```{python}
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+
+accounts = pd.read_csv("data/accounts_analytical.csv")
+
+accounts = accounts.assign(avg_balance = -1)
+
+for i in range(len(accounts)):
+    accounts.loc[i, 'avg_balance'] = .5*(accounts.loc[i, 'max_balance']-accounts.loc[i, 'min_balance'])
+
+color = []
+marker = []
+
+for index, row in accounts.iterrows():
+    if accounts.loc[index, 'credit_cards'] == accounts.loc[index, 'credit_cards']:
+        color.append('r')
+    else:
+        color.append('b')
+    if accounts.loc[index, 'loan_term'] == accounts.loc[index, 'loan_term']:
+        marker.append('.')
+    else:
+        marker.append('x')
+        
+def mscatter(x,y,ax=None, m=None, **kw):
+    import matplotlib.markers as mmarkers
+    if not ax: ax=plt.gca()
+    sc = ax.scatter(x,y,**kw)
+    if (m is not None) and (len(m)==len(x)):
+        paths = []
+        for marker in m:
+            if isinstance(marker, mmarkers.MarkerStyle):
+                marker_obj = marker
+            else:
+                marker_obj = mmarkers.MarkerStyle(marker)
+            path = marker_obj.get_path().transformed(
+                        marker_obj.get_transform())
+            paths.append(path)
+        sc.set_paths(paths)
+    return sc
+
+fig = plt.figure()
+scatter = mscatter(accounts['account_id'], accounts['avg_balance'], c = color, m = marker)
+fig.savefig('foo.png', bbox_inches='tight')
+```
+Output image:
+![output](foo.png)

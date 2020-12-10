@@ -1,0 +1,45 @@
+```{r}
+library(pacman)
+p_load(char=c('tidyverse', 'tidygraph', 'ggraph'))
+library(readxl)
+
+migrations <- read_excel("State_to_State_Migrations_Table_2018.xls", sheet = 1, skip = 0)
+df <- migrations[c(54,67,15,61),]
+df <- df[-c(12, 23, 34, 45, 56, 67, 78, 89, 100, 111, 122)]
+df <- df[-c(2:9)]
+df <- df[-seq(3,111,by = 2)]
+df <- t(df)
+colnames(df) <- as.character(unlist(df[1,]))
+df = df[-1, ]
+
+a <- rownames(df[order(df[,1], decreasing = T),])[1:10]
+b <- rownames(df[order(df[,2], decreasing = T),])[1:10]
+c <- rownames(df[order(df[,3], decreasing = T),])[1:10]
+d <- rownames(df[order(df[,4], decreasing = T),])[1:10]
+r <- union(a, b)
+r <- union(r, c)
+r <- union(r, d)
+df <- df[r,]
+for(i in c(1:30)){
+  ind = strtoi(substr(r[i],4,6))
+  r[i] = toString(migrations[6,ind])
+}
+
+a <- c(rep('New York', 30),rep('Texas',30),rep('California',30),rep('Pennsylvania',30))
+b <- c(r,r,r,r)
+c <- c(df[,1],df[,2],df[,3],df[,4])
+d <- c(rep('red',30),rep('blue', 30), rep('yellow',30),rep('green',30))
+df <- data.frame(a, b, c, d)
+colnames(df) <- c('source','target','Tcount', 'color')
+df <- df[-c(1, 41, 79, 106),]
+rownames(df) <- 1:nrow(df)
+df <- transform(df, Tcount = as.numeric(Tcount))
+
+got_graph <- as_tbl_graph(df)
+got_graph %>% 
+  ggraph(layout='linear', circular = T)+
+    geom_node_point(aes(shape = 'circle'), show.legend = F)+
+    geom_edge_arc(aes(color = color, alpha = 0.001, edge_width = Tcount))+
+    scale_edge_width_continuous(range = c(0.2,2))+
+    geom_node_label(aes(label = name), size = 2)
+```
